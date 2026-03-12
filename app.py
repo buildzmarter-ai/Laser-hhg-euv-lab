@@ -18,3 +18,19 @@ async def get_economics():
 async def simulate():
     # [span_8](start_span)Placeholder for the full 13.5nm exposure pipeline[span_8](end_span)
     return {"status": "success", "message": "Coherent EUV beam simulated at 10mW"}
+from backend.dose_engine import PhoenixEngine
+
+# Instantiate the engine
+phoenix = PhoenixEngine()
+
+@app.get("/api/v1/system-state")
+async def get_system_state():
+    """
+    Exposes the Phoenix Engine's current hypotheses and correction factors.
+    """
+    return {
+        "active_hypotheses": phoenix.hypotheses,
+        "correction_factor": phoenix.get_correction_factor(),
+        "dose_tolerance": f"{phoenix.dose_tolerance * 100}%",
+        "status": "Adaptive Gating Active"
+    }
