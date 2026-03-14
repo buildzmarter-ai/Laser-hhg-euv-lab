@@ -1,16 +1,21 @@
 from fastapi import FastAPI, Body
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 import numpy as np
 from backend.euv_psf import generate_elliptical_source, propagate_asm
 from backend.resist_model import calculate_3d_resist_profile
 from backend.lithography_model import VirtualLithoProcess
 from backend.dose_engine import PhoenixEngine
-from backend.visualization import build_pipeline_figure
+from backend.visualization import build_pipeline_figure, build_tunable_html
 
 app = FastAPI(title="Laser-HHG-EUV Lab")
 
 model = VirtualLithoProcess()
 phoenix = PhoenixEngine()
+
+
+@app.get("/")
+async def root():
+    return RedirectResponse(url="/api/visualize")
 
 
 @app.get("/api/fleet-economics")
@@ -50,6 +55,7 @@ async def simulate(payload: dict = Body(...)):
 @app.get("/api/visualize", response_class=HTMLResponse)
 async def visualize(
     dose: float = 20.0,
+    line_width: int = 20,
     peb_time: float = 60.0,
     diffusion_coef: float = 5.0,
     k_amp: float = 0.2,
@@ -58,17 +64,19 @@ async def visualize(
     n_mack: int = 5,
 ):
     ai = np.zeros((256, 256))
-    ai[:, 118:138] = 1.0
+    center = 256 // 2
+    half = max(1, line_width // 2)
+    ai[:, center - half:center + half] = 1.0
 
     params = {
-        "dose": dose, "peb_time": peb_time,
+        "dose": dose, "line_width": line_width, "peb_time": peb_time,
         "diffusion_coef": diffusion_coef, "k_amp": k_amp,
         "r_max": r_max, "r_min": r_min, "n_mack": n_mack,
     }
 
     stages = model.simulate_chain_detailed(ai, params)
-    fig = build_pipeline_figure(stages, title=f"EUV Litho Pipeline (dose={dose} mJ/cm\u00b2)")
-    return fig.to_html(full_html=True, include_plotlyjs="cdn")
+    title = f"EUV Litho Pipeline (dose={dose} mJ/cm\u00b2, line={line_width} nm)"
+    return build_tunable_html(stages, params, title=title)
 
 
 @app.get("/api/v1/system-state")

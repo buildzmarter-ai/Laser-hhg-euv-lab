@@ -7,17 +7,19 @@ from backend.lithography_model import VirtualLithoProcess
 from backend.visualization import build_pipeline_figure
 
 
-def make_aerial_image(nx=256, ny=256):
-    """Default 20nm vertical line target (matches /api/simulate)."""
+def make_aerial_image(nx=256, ny=256, line_width=20):
+    """Vertical line target with configurable width."""
     ai = np.zeros((nx, ny))
     center = ny // 2
-    ai[:, center - 10:center + 10] = 1.0
+    half = max(1, line_width // 2)
+    ai[:, center - half:center + half] = 1.0
     return ai
 
 
 def main():
     parser = argparse.ArgumentParser(description="EUV Litho Pipeline Visualizer")
     parser.add_argument("--dose", type=float, default=20.0)
+    parser.add_argument("--line-width", type=int, default=20, help="Target line width in nm")
     parser.add_argument("--peb-time", type=float, default=60.0)
     parser.add_argument("--diffusion-coef", type=float, default=5.0)
     parser.add_argument("--k-amp", type=float, default=0.2)
@@ -29,16 +31,17 @@ def main():
     args = parser.parse_args()
 
     model = VirtualLithoProcess(nx=args.grid, ny=args.grid)
-    ai = make_aerial_image(args.grid, args.grid)
+    ai = make_aerial_image(args.grid, args.grid, line_width=args.line_width)
 
     params = {
-        "dose": args.dose, "peb_time": args.peb_time,
+        "dose": args.dose, "line_width": args.line_width, "peb_time": args.peb_time,
         "diffusion_coef": args.diffusion_coef, "k_amp": args.k_amp,
         "r_max": args.r_max, "r_min": args.r_min, "n_mack": args.n_mack,
     }
 
     stages = model.simulate_chain_detailed(ai, params)
-    fig = build_pipeline_figure(stages, title=f"EUV Litho Pipeline (dose={args.dose} mJ/cm\u00b2)")
+    title = f"EUV Litho Pipeline (dose={args.dose} mJ/cm\u00b2, line={args.line_width} nm)"
+    fig = build_pipeline_figure(stages, title=title)
 
     if args.no_browser:
         fig.write_html("litho_visualization.html")

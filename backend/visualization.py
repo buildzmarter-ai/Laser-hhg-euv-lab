@@ -13,7 +13,7 @@ def build_pipeline_figure(stages, title="EUV Lithography Simulation Pipeline"):
     fig = make_subplots(
         rows=2, cols=2,
         subplot_titles=[cfg[1] for cfg in STAGE_CONFIG],
-        horizontal_spacing=0.08,
+        horizontal_spacing=0.12,
         vertical_spacing=0.12,
     )
 
@@ -23,7 +23,7 @@ def build_pipeline_figure(stages, title="EUV Lithography Simulation Pipeline"):
             go.Heatmap(
                 z=stages[key],
                 colorscale=colorscale,
-                colorbar=dict(len=0.4, y=0.78 - row * 0.56, x=0.47 + col * 0.53),
+                colorbar=dict(len=0.35, y=0.80 - row * 0.58, x=0.44 + col * 0.56),
                 hovertemplate="x: %{x}<br>y: %{y}<br>value: %{z:.4f}<extra></extra>",
             ),
             row=row + 1, col=col + 1,
@@ -32,6 +32,81 @@ def build_pipeline_figure(stages, title="EUV Lithography Simulation Pipeline"):
     fig.update_layout(
         title_text=title,
         height=900,
-        width=1000,
+        width=1050,
     )
     return fig
+
+
+def build_tunable_html(stages, params, title="EUV Lithography Simulation Pipeline"):
+    """Build full HTML page with plotly figure and parameter controls."""
+    fig = build_pipeline_figure(stages, title=title)
+    plot_html = fig.to_html(full_html=False, include_plotlyjs="cdn")
+
+    dose = params.get("dose", 20.0)
+    line_width = params.get("line_width", 20)
+    peb_time = params.get("peb_time", 60.0)
+    diffusion_coef = params.get("diffusion_coef", 5.0)
+    k_amp = params.get("k_amp", 0.2)
+    r_max = params.get("r_max", 100.0)
+    n_mack = params.get("n_mack", 5)
+
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+    <title>EUV Litho Pipeline</title>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; background: #fafafa; }}
+        .controls {{
+            background: #fff; padding: 16px 24px; border-bottom: 1px solid #e0e0e0;
+            display: flex; flex-wrap: wrap; gap: 16px; align-items: end;
+        }}
+        .control-group {{ display: flex; flex-direction: column; gap: 4px; }}
+        .control-group label {{ font-size: 12px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }}
+        .control-group input {{ width: 90px; padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }}
+        .control-group .value-display {{ font-size: 11px; color: #888; min-height: 16px; }}
+        button {{
+            padding: 8px 20px; background: #2563eb; color: #fff; border: none;
+            border-radius: 4px; font-size: 14px; cursor: pointer; font-weight: 600;
+            align-self: end;
+        }}
+        button:hover {{ background: #1d4ed8; }}
+        .plot-container {{ padding: 8px; }}
+    </style>
+</head>
+<body>
+    <form class="controls" method="get" action="/api/visualize">
+        <div class="control-group">
+            <label>Dose (mJ/cm&sup2;)</label>
+            <input type="number" name="dose" value="{dose}" step="1" min="1" max="500">
+        </div>
+        <div class="control-group">
+            <label>Line Width (nm)</label>
+            <input type="number" name="line_width" value="{line_width}" step="1" min="1" max="128">
+        </div>
+        <div class="control-group">
+            <label>PEB Time (s)</label>
+            <input type="number" name="peb_time" value="{peb_time}" step="5" min="1" max="300">
+        </div>
+        <div class="control-group">
+            <label>Diffusion (nm&sup2;/s)</label>
+            <input type="number" name="diffusion_coef" value="{diffusion_coef}" step="0.5" min="0.1" max="50">
+        </div>
+        <div class="control-group">
+            <label>k_amp</label>
+            <input type="number" name="k_amp" value="{k_amp}" step="0.05" min="0.01" max="2">
+        </div>
+        <div class="control-group">
+            <label>r_max (nm/s)</label>
+            <input type="number" name="r_max" value="{r_max}" step="10" min="1" max="1000">
+        </div>
+        <div class="control-group">
+            <label>Mack n</label>
+            <input type="number" name="n_mack" value="{n_mack}" step="1" min="1" max="20">
+        </div>
+        <button type="submit">Simulate</button>
+    </form>
+    <div class="plot-container">
+        {plot_html}
+    </div>
+</body>
+</html>"""
