@@ -8,6 +8,12 @@ from backend.dose_engine import PhoenixEngine
 from backend.visualization import build_pipeline_figure, build_tunable_html
 from backend.optical_pipeline import EUVOpticalPipeline
 from backend.visualization_3d import build_3d_pipeline_html
+from backend.fleet_economics import compute_sensitivity_table
+from backend.visualization_fleet import build_fleet_dashboard_html
+from backend.visualization_multihead import build_multihead_html
+from backend.visualization_psf import build_psf_synthesis_html
+from backend.visualization_11dof import build_11dof_html
+from backend.citations import inject_citations
 
 app = FastAPI(title="Laser-HHG-EUV Lab")
 
@@ -40,6 +46,8 @@ async def dashboard():
         .card .tag { display: inline-block; margin-top: 14px; font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 600; }
         .tag-2d { background: #1e3a5f; color: #5ba3e6; }
         .tag-3d { background: #2d1e5f; color: #a37be6; }
+        .tag-econ { background: #5f4b1e; color: #e6c45b; }
+        .tag-multi { background: #3b1e5f; color: #c45be6; }
         .tag-api { background: #1e5f3a; color: #5be6a3; }
         .footer { text-align: center; padding: 32px; font-size: 12px; color: #555; }
     </style>
@@ -62,6 +70,30 @@ async def dashboard():
             <p>Full beam path from VCSEL source through HHG gas cell to wafer. Visualize gas supply, pressures, power budget, and harmonic generation physics.</p>
             <span class="tag tag-3d">3D INTERACTIVE</span>
         </a>
+        <a class="card" href="/api/fleet-dashboard">
+            <div class="icon">&#x1F4B0;</div>
+            <h2>Platform Economics</h2>
+            <p>Integrated platform vs ASML: cost, power, footprint comparison. Semiconductor batch manufacturing economics and scaling analysis.</p>
+            <span class="tag tag-econ">DARPA-READY</span>
+        </a>
+        <a class="card" href="/api/multihead">
+            <div class="icon">&#x1F4A0;</div>
+            <h2>Multi-Head Writer</h2>
+            <p>Tiled multi-head array with A/B/C architecture selector, per-tile exposure calculator, stitching zones, and per-site dose calibration.</p>
+            <span class="tag tag-multi">PATENT DEMO</span>
+        </a>
+        <a class="card" href="/api/psf-synthesis">
+            <div class="icon">&#x1F9EC;</div>
+            <h2>PSF Synthesis</h2>
+            <p>Spatiotemporal exposure compositing: build arbitrary effective PSFs from dithered sub-exposures. Coupled vs. sequential optimization, coherent sharpening, thermal relaxation.</p>
+            <span class="tag tag-psf" style="background:#1e5f5f; color:#5be6e6;">CLAIM 4 EVIDENCE</span>
+        </a>
+        <a class="card" href="/api/writer-head">
+            <div class="icon">&#x1F9F1;</div>
+            <h2>11-DOF Writer Head</h2>
+            <p>3D optical stack from 2D planar fab: Bragg mirrors, waveguides, MEMS steering, vacuum shell, immersion coupling. Interactive exploded view with all 11 degrees of freedom.</p>
+            <span class="tag" style="background:#312e81; color:#a5b4fc;">11-DOF ARCHITECTURE</span>
+        </a>
         <a class="card" href="/api/v1/system-state">
             <div class="icon">&#x2699;</div>
             <h2>Phoenix Engine State</h2>
@@ -74,13 +106,69 @@ async def dashboard():
 </html>"""
 
 
+@app.get("/api/fleet-dashboard", response_class=HTMLResponse)
+async def fleet_dashboard(
+    dose_mj_cm2: float = 15.0,
+    config_name: str = "Specialty / Defense",
+):
+    from backend.fleet_economics import PLATFORM_CONFIGS
+    config = PLATFORM_CONFIGS.get(config_name, list(PLATFORM_CONFIGS.values())[1])
+    scenarios = compute_sensitivity_table(
+        power_levels_mw=[0.1, 1.0, 5.0, 10.0, 50.0],
+        config=config,
+        dose_mj_cm2=dose_mj_cm2,
+    )
+    params = {
+        "dose_mj_cm2": dose_mj_cm2,
+        "config_name": config_name,
+    }
+    html = build_fleet_dashboard_html(scenarios, params)
+    return inject_citations(html, extra_refs=[43, 44, 45])
+
+
+@app.get("/api/multihead", response_class=HTMLResponse)
+async def multihead(
+    arch: str = "A",
+    n_rows: int = 4,
+    n_cols: int = 4,
+    overlap_pct: float = 5.0,
+    emitters_per_side: int = 16,
+    source_power_mw: float = 10.0,
+    dose_mj_cm2: float = 15.0,
+):
+    html = build_multihead_html(
+        arch_key=arch,
+        n_rows=n_rows,
+        n_cols=n_cols,
+        overlap_pct=overlap_pct,
+        emitters_per_side=emitters_per_side,
+        source_power_mw=source_power_mw,
+        dose_mj_cm2=dose_mj_cm2,
+    )
+    return inject_citations(html, extra_refs=[40, 46])
+
+
+@app.get("/api/writer-head", response_class=HTMLResponse)
+async def writer_head():
+    return build_11dof_html()
+
+
 @app.get("/api/fleet-economics")
 async def get_economics():
-    return {
-        "unit_cost_savings": "99.2%",
-        "power_draw_reduction": "99.9%",
-        "redundancy_impact_per_unit": "1.1%"
-    }
+    scenarios = compute_sensitivity_table()
+    return [
+        {
+            "euv_power_mw": s.euv_power_mw,
+            "total_heads": s.total_heads,
+            "platform_wph": round(s.wph, 2),
+            "platform_cost_m": round(s.platform_cost_m, 1),
+            "platform_power_kw": round(s.platform_power_kw, 1),
+            "capex_savings_pct": round(s.capex_savings_pct, 1),
+            "power_savings_pct": round(s.power_savings_pct, 1),
+            "single_head_failure_pct": round(s.single_head_failure_pct, 3),
+        }
+        for s in scenarios
+    ]
 
 
 @app.post("/api/simulate")
@@ -132,7 +220,8 @@ async def visualize(
 
     stages = model.simulate_chain_detailed(ai, params)
     title = f"EUV Litho Pipeline (dose={dose} mJ/cm\u00b2, line={line_width} nm)"
-    return build_tunable_html(stages, params, title=title)
+    html = build_tunable_html(stages, params, title=title)
+    return inject_citations(html, extra_refs=[42, 52, 53, 54])
 
 
 @app.get("/api/visualize-3d", response_class=HTMLResponse)
@@ -158,7 +247,30 @@ async def visualize_3d(
         "intensity_w_cm2": intensity_w_cm2, "n_mirrors": n_mirrors,
         "filter_material": filter_material, "filter_thickness_nm": filter_thickness_nm,
     }
-    return build_3d_pipeline_html(pipeline, params)
+    html = build_3d_pipeline_html(pipeline, params)
+    return inject_citations(html, extra_refs=[44, 45])
+
+
+@app.get("/api/psf-synthesis", response_class=HTMLResponse)
+async def psf_synthesis(
+    sigma_nm: float = 10.0,
+    target_type: str = "flat_top",
+    target_radius_nm: float = 15.0,
+    n_sub: int = 9,
+    dx_nm: float = 1.0,
+    grid_size: int = 128,
+    resist_thickness_nm: float = 20.0,
+):
+    html = build_psf_synthesis_html(
+        sigma_nm=sigma_nm,
+        target_type=target_type,
+        target_radius_nm=target_radius_nm,
+        n_sub=n_sub,
+        dx_nm=dx_nm,
+        grid_size=grid_size,
+        resist_thickness_nm=resist_thickness_nm,
+    )
+    return inject_citations(html, extra_refs=[1, 21, 24, 40, 50, 51])
 
 
 @app.get("/api/v1/system-state")

@@ -287,8 +287,11 @@ def build_3d_pipeline_html(pipeline, params, title="EUV Optical Pipeline"):
 </head>
 <body>
     <div class="nav">
-        <a href="/api/visualize">2D Process Simulation</a>
-        <a href="/api/visualize-3d" class="active">3D Optical Pipeline</a>
+        <a href="/api/visualize">2D Process Sim</a>
+        <a href="/api/visualize-3d" class="active">3D Pipeline</a>
+        <a href="/api/fleet-dashboard">Platform Economics</a>
+        <a href="/api/multihead">Multi-Head Array</a>
+        <a href="/api/writer-head">11-DOF Head</a>
     </div>
     <form class="controls" method="get" action="/api/visualize-3d">
         <div class="control-group">
@@ -329,8 +332,20 @@ def build_3d_pipeline_html(pipeline, params, title="EUV Optical Pipeline"):
         </div>
         <button type="submit">Update Pipeline</button>
     </form>
+    <div style="padding: 8px 24px; font-size: 13px; color: #64748b;">
+        Full beam path from VCSEL source through HHG gas cell[cite: 44][cite: 45] to wafer.
+        High-harmonic generation converts IR drive laser to coherent EUV via the three-step model
+        (ionization, acceleration, recombination).
+    </div>
     <div class="plot-container">
         {plot_html}
+    </div>
+    <div style="background:#eff6ff;border:1px solid #93c5fd;border-radius:8px;padding:12px 20px;margin:12px 24px;font-size:13px;color:#1e40af;line-height:1.5;">
+        <b>This shows one optical pipeline.</b> In the multi-writer platform, each
+        <a href="/api/writer-head" style="color:#2563eb;font-weight:700;">11-DOF writer head</a>
+        contains a miniaturized version of this pipeline as a 3D semiconductor stack.
+        The <a href="/api/multihead" style="color:#2563eb;">multi-head array</a> tiles hundreds
+        of these heads on a single 33\u00d733mm package for parallel exposure.
     </div>
 </body>
 </html>"""
