@@ -572,12 +572,60 @@ def _build_lab91_section_html():
     <div class="section">
         <h2>Shot Noise Advantage: 405 nm vs EUV</h2>
         <div class="callout">
-            <b>At a 2\u00d72 nm\u00b2 voxel:</b> EUV at 60 mJ/cm\u00b2 delivers only 163 photons (8% shot noise).
-            The VCSEL at 405 nm and 20 mJ/cm\u00b2 delivers 1,630 photons (2.5% shot noise) — a
-            <b>10\u00d7 photon count</b> and <b>3\u00d7 noise reduction</b> per pixel.
+            <b>At a 2\u00d72 nm\u00b2 voxel:</b> EUV at 40 mJ/cm\u00b2 (mid-range production CAR) delivers only 109 photons (9.6% shot noise).
+            The VCSEL at 405 nm and 15 mJ/cm\u00b2 delivers 1,222 photons (2.9% shot noise) \u2014 an
+            <b>11\u00d7 photon count</b> and <b>3.3\u00d7 noise reduction</b> per pixel.
             This directly improves contact edge roughness and atomristor switching reproducibility.
         </div>
         <div class="plot-container">{shot_html}</div>
+
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:16px 20px; margin-top:12px;">
+            <h3 style="margin:0 0 10px 0; font-size:14px; color:#0f172a;">Resist Dose Reference (Literature)</h3>
+            <p style="font-size:11px; color:#64748b; margin:0 0 8px 0;">
+                Dose range 15\u201360 mJ/cm\u00b2 spans all production CAR families. Three major supplier families:
+            </p>
+            <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                <thead>
+                    <tr style="border-bottom:2px solid #e2e8f0;">
+                        <th style="text-align:left; padding:6px 8px; color:#475569;">Regime</th>
+                        <th style="text-align:left; padding:6px 8px; color:#475569;">Chemistry</th>
+                        <th style="text-align:left; padding:6px 8px; color:#475569;">Dose (mJ/cm\u00b2)</th>
+                        <th style="text-align:left; padding:6px 8px; color:#475569;">Key Suppliers</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom:1px solid #f1f5f9;">
+                        <td style="padding:5px 8px;"><b>g-line (436 nm)</b></td>
+                        <td style="padding:5px 8px;">Novolac/DNQ</td>
+                        <td style="padding:5px 8px;">50\u2013200</td>
+                        <td style="padding:5px 8px; font-size:11px;">Shipley S1813, TOK THMR, AZ 1500</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid #f1f5f9;">
+                        <td style="padding:5px 8px;"><b>KrF (248 nm)</b></td>
+                        <td style="padding:5px 8px;">CAR (PHS + PAG)</td>
+                        <td style="padding:5px 8px;">15\u201350</td>
+                        <td style="padding:5px 8px; font-size:11px;">Shipley UV5/UV6, TOK TDUR, JSR KrF</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid #f1f5f9;">
+                        <td style="padding:5px 8px;"><b>ArF (193 nm)</b></td>
+                        <td style="padding:5px 8px;">CAR (methacrylate)</td>
+                        <td style="padding:5px 8px;">15\u201340</td>
+                        <td style="padding:5px 8px; font-size:11px;">JSR AR series, TOK TARF, Shin-Etsu SEPR</td>
+                    </tr>
+                    <tr>
+                        <td style="padding:5px 8px;"><b>EUV (13.5 nm)</b></td>
+                        <td style="padding:5px 8px;">CAR + Metal-oxide</td>
+                        <td style="padding:5px 8px;">15\u201380</td>
+                        <td style="padding:5px 8px; font-size:11px;">JSR/Inpria MOR, TOK EUV, Shin-Etsu SEVR</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p style="font-size:10px; color:#94a3b8; margin:8px 0 0 0; line-height:1.4;">
+                Sources: Mack, <i>Fundamental Principles of Optical Lithography</i> (Wiley, 2007);
+                ITRS/IRDS Lithography Roadmap; Shipley/DuPont product datasheets (S1800 series, UV5/UV6);
+                TOK technical guides (THMR, TDUR, TARF); JSR resist catalog &amp; Inpria metal-oxide publications (SPIE Proc. 10583, 2018).
+            </p>
+        </div>
     </div>
 
     <div class="section">

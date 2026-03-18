@@ -210,22 +210,88 @@ LAB91_PROCESS = {
     "contact_cd_nm": 300,  # minimum contact width
 }
 
+# --- Resist dose regimes across lithography wavelengths ---
+# Sources: Shipley/DuPont datasheets, TOK product guides, JSR technical notes,
+# Mack "Fundamental Principles of Optical Lithography", ITRS/IRDS roadmaps.
+# Three major resist supplier families:
+#   1. Shipley → Rohm & Haas → DuPont Electronic Materials (S1800, UV5/UV6, SPR, EPIC)
+#   2. TOK — Tokyo Ohka Kogyo (THMR, TDUR, TARF series)
+#   3. JSR Corporation (KrF/ArF/EUV CARs; acquired Inpria metal-oxide resists)
+RESIST_DOSE_REGIMES = {
+    "g_line_436": {
+        "wavelength_nm": 436,
+        "label": "g-line (436 nm)",
+        "chemistry": "Novolac / Diazonaphthoquinone (DNQ)",
+        "dose_range_mj_cm2": (50, 200),
+        "typical_dose_mj_cm2": 120,
+        "suppliers": {
+            "Shipley/DuPont": "S1805, S1813, S1818 (80–150 mJ/cm²)",
+            "TOK": "THMR-iP3650 (50–100 mJ/cm²)",
+            "Merck/AZ": "AZ 1500 series (50–100 mJ/cm²)",
+        },
+        "notes": "Non-chemically-amplified; dose set by DNQ → indene carboxylic acid conversion",
+    },
+    "krf_248": {
+        "wavelength_nm": 248,
+        "label": "KrF DUV (248 nm)",
+        "chemistry": "Chemically amplified resist (PHS + PAG)",
+        "dose_range_mj_cm2": (15, 50),
+        "typical_dose_mj_cm2": 30,
+        "suppliers": {
+            "Shipley/DuPont": "UV5, UV6, UV110, UV113 (15–35 mJ/cm²)",
+            "TOK": "TDUR-P series (20–40 mJ/cm²)",
+            "JSR": "KrF CARs (15–40 mJ/cm²)",
+        },
+        "notes": "First CAR generation; acid-catalyzed deprotection gives ~100× sensitivity gain over DNQ",
+    },
+    "arf_193": {
+        "wavelength_nm": 193,
+        "label": "ArF DUV (193 nm)",
+        "chemistry": "Chemically amplified resist (methacrylate / cyclo-olefin + PAG)",
+        "dose_range_mj_cm2": (15, 40),
+        "typical_dose_mj_cm2": 25,
+        "suppliers": {
+            "JSR": "ArF CARs, AR series (15–30 mJ/cm²)",
+            "TOK": "TARF series (15–35 mJ/cm²)",
+            "Shin-Etsu": "SEPR series (15–30 mJ/cm²)",
+        },
+        "notes": "No aromatic groups (193 nm absorption); methacrylate backbone with adamantyl/lactone groups",
+    },
+    "euv_13": {
+        "wavelength_nm": 13.5,
+        "label": "EUV (13.5 nm)",
+        "chemistry": "EUV CAR + Metal-oxide resists (MOR)",
+        "dose_range_mj_cm2": (15, 80),
+        "typical_dose_mj_cm2": 40,
+        "suppliers": {
+            "JSR/Inpria": "Metal-oxide MOR (5–30 mJ/cm²); EUV CARs (30–60 mJ/cm²)",
+            "TOK": "EUV CARs (30–60 mJ/cm²)",
+            "Shin-Etsu": "SEVR series EUV CARs (20–50 mJ/cm²)",
+        },
+        "notes": "RLS trade-off (Resolution–LER–Sensitivity); MOR resists break the CAR RLS triangle",
+    },
+}
+
+
 # Shot noise comparison at 2×2 nm² voxel
+# Dose values: EUV 40 mJ/cm² (mid-range production CAR), VCSEL 15 mJ/cm² (lower bound).
+# Range spans 15–60 mJ/cm² per resist literature above.
 SHOT_NOISE_COMPARISON = {
     "voxel_nm": 2,
+    "dose_range_note": "Resist doses span 15–60 mJ/cm² across regimes (see RESIST_DOSE_REGIMES)",
     "euv": {
         "wavelength_nm": 13.5,
-        "dose_mj_cm2": 60,
-        "photon_energy_ev": 91.8,  # 13.5 nm
-        "photons_per_voxel": 163,
-        "shot_noise_pct": 7.8,
+        "dose_mj_cm2": 40,           # mid-range EUV CAR (JSR/TOK, 30–60 typical)
+        "photon_energy_ev": 91.8,     # 13.5 nm
+        "photons_per_voxel": 109,     # 40e-3 * (2e-7)^2 / (91.8 * 1.602e-19) * 1e-4
+        "shot_noise_pct": 9.6,        # 1/√109 ≈ 9.6%
     },
     "vcsel_405": {
         "wavelength_nm": 405,
-        "dose_mj_cm2": 20,
-        "photon_energy_ev": 3.06,  # 405 nm
-        "photons_per_voxel": 1630,
-        "shot_noise_pct": 2.5,
+        "dose_mj_cm2": 15,            # lower bound for CARs (user spec: 15–60)
+        "photon_energy_ev": 3.06,     # 405 nm
+        "photons_per_voxel": 1222,    # 15e-3 * (2e-7)^2 / (3.06 * 1.602e-19) * 1e-4
+        "shot_noise_pct": 2.9,        # 1/√1222 ≈ 2.9%
     },
 }
 
@@ -293,12 +359,13 @@ LAB91_MODIFICATIONS = [
         "id": 2,
         "title": "Dose Control: Shot-Noise Advantage of 405 nm Over EUV",
         "icon": "📊",
-        "current": "EUV at 60 mJ/cm²: 163 photons per 2nm pixel → 8% shot noise",
-        "proposed": "VCSEL 405nm at 20 mJ/cm²: 1,630 photons per 2nm pixel → 2.5% shot noise (3× improvement)",
+        "current": "EUV at 40 mJ/cm² (mid-range CAR): 109 photons per 2nm voxel → 9.6% shot noise",
+        "proposed": "VCSEL 405nm at 15 mJ/cm²: 1,222 photons per 2nm voxel → 2.9% shot noise (3.3× improvement)",
         "key_numbers": [
-            "3× better dose uniformity per pixel vs EUV",
-            "Lower contact edge roughness (LER/LWR) floor",
+            "3.3× better dose uniformity per pixel vs EUV at comparable resist sensitivity",
+            "Lower contact edge roughness (LER/LWR) floor — photon statistics dominate at ≤2nm features",
             "Tighter filament formation zone → better ON/OFF ratio reproducibility",
+            "Dose range 15–60 mJ/cm² covers all CAR families (Shipley/DuPont, TOK, JSR)",
         ],
         "color": "#457b9d",
     },
@@ -318,15 +385,16 @@ LAB91_MODIFICATIONS = [
     },
     {
         "id": 4,
-        "title": "Control Architecture: Local Analog Power Stabilization",
+        "title": "Control Architecture: On-Die Inference Engine",
         "icon": "⚡",
-        "current": "FPGA loop latency 5–10 ns → 150–300× too slow for 33 ps pixel dwell",
-        "proposed": "Per-VCSEL analog power stabilization (monitor photodiode + TIA) at the emitter level, plus slower zone-level compensation for transfer-induced thickness nonuniformity",
+        "current": "FPGA loop latency 5–10 ns → 150–300× too slow for 33 ps pixel dwell; software control impossible at 3.5×10¹⁴ px/s",
+        "proposed": "On-die inference engine co-located with emitter array: analog/neuromorphic/optical computation at the pixel rate, not software. Per-VCSEL monitor photodiode + TIA for sub-ns power stabilization; zone-level learned models compensate transfer-induced thickness nonuniformity",
         "key_numbers": [
-            "33 ps pixel dwell at 30 GHz per emitter — requires emitter-local analog control",
-            "Per-VCSEL monitor photodiode samples ~1% of output for real-time power stabilization",
-            "Zone-level dose correction compensates MoS₂ thickness variation across grain boundaries",
-            "Emitter-level power stabilization and scan strategies limit thermal accumulation and cross-talk during exposure",
+            "3.5×10¹⁴ px/s aggregate data rate (90 WPH @ 5nm resolution) — no software loop can keep up",
+            "33 ps pixel dwell at 30 GHz per emitter — requires emitter-local analog/neuromorphic control",
+            "Per-VCSEL monitor photodiode samples ~1% of output; TIA feedback in <1 ns — 5–10× faster than FPGA",
+            "Zone-level dose correction via on-die inference models trained on MoS₂ grain-boundary thickness maps",
+            "Analog/optical inference avoids digital bottleneck — computation co-travels with the photon path",
         ],
         "color": "#e9c46a",
     },
